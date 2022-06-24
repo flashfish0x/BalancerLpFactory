@@ -233,6 +233,10 @@ def keeper(accounts):
 
 
 @pytest.fixture(scope="module")
+def keeper_contract(KeeperWrapper):
+    yield KeeperWrapper.at('0x256e6a486075fbAdbB881516e9b6b507fd082B5D')
+
+@pytest.fixture(scope="module")
 def rewards(accounts):
     yield accounts.at("0x8Ef63b525fceF7f8662D98F77f5C9A86ae7dFE09", force=True)
 
@@ -394,8 +398,6 @@ def strategy(
     # print(strategy.rewards())
     # print("contributors: ", sharer.viewContributors(strategy))
 
-    
-    strategy.setKeeper(keeper, {"from": strategist_ms})
     gasOracle.setMaxAcceptableBaseFee(20000000000000, {"from": strategist_ms})
     # set our management fee to zero so it doesn't mess with our profit checking
 

@@ -117,8 +117,10 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
     uint256 public pid; // this is unique to each pool
     uint256 public localKeepCRV;
+    uint256 public localKeepCVX;
 
-    address public voter; // Yearn's veCRV voter, we send some extra CRV here
+    address public curveVoter; // Yearn's veCRV voter, we send some extra CRV here
+    address public convexVoter; // Yearn's veCVX voter, we send some extra CVX here
     uint256 internal constant FEE_DENOMINATOR = 10000; // this means all of our fee values are in basis points
 
     IERC20 public  crv;
@@ -255,7 +257,6 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         harvestProfitMax = _harvestProfitMax;
 
         IConvexDeposit dp = IConvexDeposit(depositContract);
-        voter = 0xF147b8125d2ef93FB6965Db97D6746952a133934;
         crv = IERC20(dp.crv());
         pid = _pid;
         (address lptoken, , , address _rewardsContract, , ) = dp.poolInfo(_pid);
@@ -313,12 +314,20 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         // this claims our CRV, CVX, and any extra tokens like SNX or ANKR. no harm leaving this true even if no extra rewards currently.
         rewardsContract.getReward(address(this), true);
 
-        if (localKeepCRV > 0) {
+        if (localKeepCRV > 0 && curveVoter != address(0)) {
             uint256 crvBalance = crv.balanceOf(address(this));
             uint256 _sendToVoter =
                 crvBalance.mul(localKeepCRV).div(FEE_DENOMINATOR);
             if (_sendToVoter > 0) {
-                crv.safeTransfer(voter, _sendToVoter);
+                crv.safeTransfer(curveVoter, _sendToVoter);
+            }
+        }
+        if (localKeepCVX > 0 && convexVoter != address(0)) {
+            uint256 cvxBalance = convexToken.balanceOf(address(this));
+            uint256 _sendToVoter =
+                cvxBalance.mul(localKeepCVX).div(FEE_DENOMINATOR);
+            if (_sendToVoter > 0) {
+                convexToken.safeTransfer(convexVoter, _sendToVoter);
             }
         }
 
@@ -483,10 +492,13 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         }
     }
 
-    function updateLocalKeepcrv(uint256 _keep) external onlyGovernance {
-        require(_keep <= 10_000);
+    function updateLocalKeepCrvs(uint256 _keepCrv,uint256 _keepCvx) external onlyGovernance {
+        require(_keepCrv <= 10_000);
 
-        localKeepCRV = _keep;
+        localKeepCRV = _keepCrv;
+        require(_keepCvx <= 10_000);
+
+        localKeepCVX = _keepCvx;
     }
 
     // Use to turn off extra rewards claiming and selling. set our allowance to zero on the router and set address to zero address.
@@ -622,11 +634,12 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         }
     }
 
-    function updateVoter(address _voter)
+    function updateVoters(address _curveVoter, address _convexVoter)
         external
         onlyGovernance
     {
-        voter = _voter;
+        curveVoter = _curveVoter;
+        convexVoter = _convexVoter;
     }
 
     // once this is called setupTradefactory must be called to get things working again
