@@ -324,12 +324,17 @@ def v2(pm, gov, rewards, guardian, management, token, chain):
 def ymechs_safe():
     yield Contract("0x2C01B4AD51a67E2d8F02208F54dF9aC4c0B778B6")
 
+@pytest.fixture(scope="function")
+def balancer_global(BalancerGlobal, strategist, new_registry, gasOracle):
+    yield strategist.deploy(BalancerGlobal, new_registry, gasOracle)
+
 
 # replace the first value with the name of your strategy
 @pytest.fixture(scope="function")
 def strategy(
     StrategyConvexFactoryClonable,
     strategist,
+    balancer_global,
     keeper,
     ymechs_safe,
     v2,
@@ -353,7 +358,7 @@ def strategy(
     badgerweth_gauge,
 ):
 
-    BalancerGlobal = strategist.deploy(BalancerGlobal, new_registry, gasOracle)
+    BalancerGlobal = balancer_global
 
     pid = BalancerGlobal.getPid(badgerweth_gauge)
     print(pid)
@@ -377,14 +382,13 @@ def strategy(
     print("strategist: ", strategist)
     
 
-    BalancerGlobal.createNewBalancerVaultsAndStrategies(
+    BalancerGlobal.createNewVaultsAndStrategies(
         badgerweth_gauge, {"from": strategist}
     )
 
     print("endorsed")
 
-    with brownie.reverts("Vault already exists"):
-        BalancerGlobal.createNewBalancerVaultsAndStrategies(badgerweth_gauge, {"from": strategist})
+    
     vault = Vault.at(BalancerGlobal.alreadyExistsFromGauge(badgerweth_gauge))
     strat = vault.withdrawalQueue(0)
     # test a default type

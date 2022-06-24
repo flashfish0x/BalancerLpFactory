@@ -255,6 +255,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
         // harvest profit max set to 25k usdt. will trigger harvest in this situation
         harvestProfitMax = _harvestProfitMax;
+        harvestProfitMin = _harvestProfitMax;
 
         IConvexDeposit dp = IConvexDeposit(depositContract);
         crv = IERC20(dp.crv());

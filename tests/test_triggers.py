@@ -26,8 +26,8 @@ def test_triggers(
     strategy.harvest({"from": gov})
     chain.sleep(1)
 
-    # simulate a day of earnings
-    chain.sleep(86400)
+    # simulate 1 days of earnings
+    chain.sleep(1*86400)
     chain.mine(1)
 
     # harvest should trigger false
@@ -45,7 +45,9 @@ def test_triggers(
         print("\nShould we harvest? Should be false since it was already false.", tx)
         assert tx == False
     strategy.setCheckEarmark(False, {"from": gov})
-
+    # simulate 1 days of earnings
+    chain.sleep(10*86400)
+    chain.mine(1)
     # update our minProfit so our harvest triggers true
     strategy.setHarvestProfitNeeded(1e6, 1000000e6, {"from": gov})
     tx = strategy.harvestTrigger(0, {"from": gov})

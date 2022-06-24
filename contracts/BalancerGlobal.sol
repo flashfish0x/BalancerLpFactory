@@ -156,7 +156,7 @@ contract BalancerGlobal {
         address indexed lpToken,
         address indexed vault,
         address gauge,
-        address auraStrategy
+        address strategy
     );
 
     ///////////////////////////////////
@@ -164,6 +164,9 @@ contract BalancerGlobal {
     //  Storage variables and setters
     //
     ////////////////////////////////////
+
+    address[] public deployedVaults;
+    uint256 public numVaults;
 
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
     uint256 public constant category = 1; // 1 for balancer
@@ -362,23 +365,23 @@ contract BalancerGlobal {
     }
 
     // only permissioned users can deploy if there is already one endorsed
-    function createNewBalancerVaultsAndStrategies(
+    function createNewVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
     ) external returns (address vault, address auraStrategy) {
         require(msg.sender == owner || msg.sender == management);
 
-        return _createNewBalancerVaultsAndStrategies(_gauge, _allowDuplicate);
+        return _createNewVaultsAndStrategies(_gauge, _allowDuplicate);
     }
 
-    function createNewBalancerVaultsAndStrategies(address _gauge)
+    function createNewVaultsAndStrategies(address _gauge)
         external
         returns (address vault, address auraStrategy)
     {
-        return _createNewBalancerVaultsAndStrategies(_gauge, false);
+        return _createNewVaultsAndStrategies(_gauge, false);
     }
 
-    function _createNewBalancerVaultsAndStrategies(
+    function _createNewVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
     ) internal returns (address vault, address auraStrategy) {
@@ -421,6 +424,9 @@ contract BalancerGlobal {
             0,
             VaultType.AUTOMATED
         );
+        deployedVaults.push(vault);
+        numVaults = deployedVaults.length;
+
         Vault v = Vault(vault);
         v.setManagement(management);
         //set governance to owner who needs to accept before it is finalised. until then governance is this factory
