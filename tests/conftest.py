@@ -33,18 +33,17 @@ def new_registry(interface):
 # put our pool's convex pid here; this is the only thing that should need to change up here **************
 @pytest.fixture(scope="module")
 def pid():
-    # pid = 56
-    pid = 99  # toke
+    pid = 11  # 20wbtc 80 badger
     yield pid
 
 
 @pytest.fixture(scope="module")
-def whale(accounts, toke_gauge, token):
+def whale(accounts, badgerweth_gauge, token):
     # Totally in it for the tech
     # Update this with a large holder of your want token (the largest EOA holder of LP)
 
     whale = accounts.at("0x89eBCb7714bd0D2F33ce3a35C12dBEB7b94af169", force=True)
-    token.transfer(whale, 1_000 * 1e18, {"from": toke_gauge})
+    token.transfer(whale, 1_000 * 1e18, {"from": badgerweth_gauge})
     yield whale
 
 
@@ -82,22 +81,22 @@ def has_rewards():
 # all contracts below should be able to stay static based on the pid
 @pytest.fixture(scope="module")
 def booster():  # this is the deposit contract
-    yield Contract("0xF403C135812408BFbE8713b5A23a04b3D48AAE31")
+    yield Contract("0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10")
+
+
+# @pytest.fixture(scope="function")
+# def voter():
+#     yield Contract("0xF147b8125d2ef93FB6965Db97D6746952a133934")
 
 
 @pytest.fixture(scope="function")
-def voter():
-    yield Contract("0xF147b8125d2ef93FB6965Db97D6746952a133934")
+def auraToken():
+    yield Contract("0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF")
 
 
 @pytest.fixture(scope="function")
-def convexToken():
-    yield Contract("0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B")
-
-
-@pytest.fixture(scope="function")
-def crv():
-    yield Contract("0xD533a949740bb3306d119CC777fa900bA034cd52")
+def bal():
+    yield Contract("0xba100000625a3754423978a60c9317c58a424e3D")
 
 
 @pytest.fixture(scope="function")
@@ -123,26 +122,6 @@ def curve_registry():
 @pytest.fixture(scope="module")
 def healthCheck():
     yield Contract("0xDDCea799fF1699e98EDF118e0629A974Df7DF012")
-
-
-@pytest.fixture(scope="function")
-def live_spell_strat(trade_factory, ymechs_safe):
-    strategy = Contract("0xeDB4B647524FC2B9985019190551b197c6AB6C5c")
-    trade_factory.grantRole(trade_factory.STRATEGY(), strategy, {"from": ymechs_safe})
-    yield strategy
-
-
-@pytest.fixture(scope="function")
-def live_yfi_strat(trade_factory, ymechs_safe):
-    network.gas_limit(6_000_000)
-    # network.gas_price(0)
-    # network.max_fee(0)
-    # network.priority_fee(0)
-    # , "allow_revert": True
-    strategy = Contract("0xa04947059831783C561e59A43B93dCB5bEE7cab2")
-
-    trade_factory.grantRole(trade_factory.STRATEGY(), strategy, {"from": ymechs_safe})
-    yield strategy
 
 
 @pytest.fixture(scope="module")
@@ -184,6 +163,10 @@ def trade_factory():
     # yield Contract("0xBf26Ff7C7367ee7075443c4F95dEeeE77432614d")
     yield Contract("0x99d8679bE15011dEAD893EB4F5df474a4e6a8b29")
 
+@pytest.fixture
+def new_trade_factory():
+    # yield Contract("0xBf26Ff7C7367ee7075443c4F95dEeeE77432614d")
+    yield Contract("0xd6a8ae62f4d593DAf72E2D7c9f7bDB89AB069F06")
 
 # zero address
 @pytest.fixture(scope="module")
@@ -308,8 +291,13 @@ def vault(
 
 
 @pytest.fixture(scope="module")
-def toke_gauge(Contract):
-    yield Contract("0xa0C08C0Aede65a0306F7dD042D2560dA174c91fC")
+def badgerweth_gauge(Contract):
+    yield Contract("af50825b010ae4839ac444f6c12d44b96819739b")
+
+@pytest.fixture(scope="function")
+def Vault(pm):
+    Vault = pm(config["dependencies"][0]).Vault
+    yield Vault
 
 
 @pytest.fixture(scope="function")
@@ -341,69 +329,65 @@ def strategy(
     keeper,
     ymechs_safe,
     v2,
-    trade_factory,
+    new_trade_factory,
     gov,
     accounts,
-    CurveGlobal,
+    BalancerGlobal,
+    Vault,
     guardian,
     token,
     healthCheck,
     chain,
     Contract,
+    booster,
     pid,
+    auraToken,
     proxy,
     gasOracle,
     new_registry,
     strategist_ms,
-    toke_gauge,
+    badgerweth_gauge,
 ):
 
-    curveGlobal = strategist.deploy(CurveGlobal, new_registry, gasOracle)
+    BalancerGlobal = strategist.deploy(BalancerGlobal, new_registry, gasOracle)
 
-    pid = curveGlobal.getPid(toke_gauge)
+    pid = BalancerGlobal.getPid(badgerweth_gauge)
     print(pid)
-    print(toke_gauge.lp_token())
+    print(badgerweth_gauge.lp_token())
 
-    next_contract = strategist.get_deployment_address()
-    trade_factory.grantRole(
-        trade_factory.STRATEGY(), next_contract, {"from": ymechs_safe, "gas_price": "0 gwei"}
-    )
+
     # print(next_contract)
 
-    s = strategist.deploy(StrategyConvexFactoryClonable, v2, trade_factory, pid, 25_000*1e6)
-    curveGlobal.setConvexStratImplementation(s, {"from": gov})
+    s = strategist.deploy(StrategyConvexFactoryClonable, v2, new_trade_factory, pid, 25_000*1e6, booster, auraToken)
+    BalancerGlobal.setAuraStratImplementation(s, {"from": gov})
     print("convex impl: ", s)
-    assert next_contract == s.address
+    
 
     registry_owner = accounts.at(new_registry.owner(), force=True)
-    new_registry.setApprovedVaultsOwner(curveGlobal, True, {"from": registry_owner})
-    new_registry.setRole(curveGlobal, False, True, {"from": registry_owner})
+    new_registry.setApprovedVaultsOwner(BalancerGlobal, True, {"from": registry_owner})
+    new_registry.setRole(BalancerGlobal, False, True, {"from": registry_owner})
 
-    curve_acount_wrapper = accounts.at(s, force=True)
-    next_contract = curve_acount_wrapper.get_deployment_address(1)
-    print("curve gloval next: ", curve_acount_wrapper.get_deployment_address(0))
-    print("curve gloval next2: ", curve_acount_wrapper.get_deployment_address(1))
-    print("curve gloval: ", curveGlobal)
-    print("toke guage: ", toke_gauge)
+    
+    print("curve gloval: ", BalancerGlobal)
+    print("badger weth guage: ", badgerweth_gauge)
     print("strategist: ", strategist)
-    trade_factory.grantRole(
-        trade_factory.STRATEGY(), next_contract, {"from": ymechs_safe, "gas_price": "0 gwei"}
+    
+
+    BalancerGlobal.createNewBalancerVaultsAndStrategies(
+        badgerweth_gauge, {"from": strategist}
     )
 
-    t11 = curveGlobal.createNewCurveVaultsAndStrategies(
-        toke_gauge, {"from": strategist}
-    )
-    (vault, strat) = t11.return_value
     print("endorsed")
 
     with brownie.reverts("Vault already exists"):
-        curveGlobal.createNewCurveVaultsAndStrategies(toke_gauge, {"from": strategist})
-
+        BalancerGlobal.createNewBalancerVaultsAndStrategies(badgerweth_gauge, {"from": strategist})
+    vault = Vault.at(BalancerGlobal.alreadyExistsFromGauge(badgerweth_gauge))
+    strat = vault.withdrawalQueue(0)
     # test a default type
-    assert (
-        curveGlobal.alreadyExistsFromToken("0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e")
-        == "0x718AbE90777F5B778B52D553a5aBaa148DD0dc5D"
-    )
+    # assert (
+    #     BalancerGlobal.alreadyExistsFromToken("0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e")
+    #     == "0x718AbE90777F5B778B52D553a5aBaa148DD0dc5D"
+    # )
 
     # make sure to include all constructor parameters needed here
     strategy = StrategyConvexFactoryClonable.at(strat)

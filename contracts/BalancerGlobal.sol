@@ -88,7 +88,10 @@ interface IStrategy {
         address _keeper,
         uint256 _pid,
         address _tradeFactory,
-        uint256 _harvestProfitMax
+        uint256 _harvestProfitMax,
+        address _booster,
+        address _convexToken
+
     ) external returns (address newStrategy);
 
     function setHealthCheck(address) external;
@@ -161,6 +164,7 @@ contract BalancerGlobal {
     //
     ////////////////////////////////////
 
+    address public constant bal = 0xba100000625a3754423978a60c9317c58a424e3D;
     // always owned by ychad
     address public owner = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
     address internal pendingOwner;
@@ -240,7 +244,7 @@ contract BalancerGlobal {
         healthCheck = _health;
     }
 
-    address public tradeFactory = 0x99d8679bE15011dEAD893EB4F5df474a4e6a8b29;
+    address public tradeFactory = 0xd6a8ae62f4d593DAf72E2D7c9f7bDB89AB069F06;
 
     function setTradeFactory(address _tradeFactory) external {
         require(msg.sender == owner || msg.sender == management);
@@ -392,7 +396,7 @@ contract BalancerGlobal {
             //add pool
             require(
                 IPoolManager(auraPoolManager).addPool(_gauge),
-                "Unable to add pool to Convex"
+                "Unable to add pool to Aura"
             );
         }
 
@@ -404,13 +408,13 @@ contract BalancerGlobal {
             treasury,
             string(
                 abi.encodePacked(
-                    "Curve ",
+                    "Balancer ",
                     IDetails(address(lptoken)).symbol(),
                     " Auto-Compounding yVault"
                 )
             ),
             string(
-                abi.encodePacked("yvCurve", IDetails(address(lptoken)).symbol())
+                abi.encodePacked("yvBlp", IDetails(address(lptoken)).symbol())
             ),
             0,
             VaultType.AUTOMATED
@@ -439,7 +443,9 @@ contract BalancerGlobal {
             keeper,
             pid,
             tradeFactory,
-            harvestProfitMaxInUsdt
+            harvestProfitMaxInUsdt,
+            address(booster),
+            bal
         );
         IStrategy(auraStrategy).setHealthCheck(healthCheck);
 
