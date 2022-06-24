@@ -325,8 +325,10 @@ def ymechs_safe():
     yield Contract("0x2C01B4AD51a67E2d8F02208F54dF9aC4c0B778B6")
 
 @pytest.fixture(scope="function")
-def balancer_global(BalancerGlobal, strategist, new_registry, gasOracle):
-    yield strategist.deploy(BalancerGlobal, new_registry, gasOracle)
+def balancer_global(BalancerGlobal, strategist, new_registry, gov, gasOracle):
+    bg = strategist.deploy(BalancerGlobal, new_registry, gasOracle, gov)
+    
+    yield bg
 
 
 # replace the first value with the name of your strategy

@@ -171,8 +171,8 @@ contract BalancerGlobal {
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
     uint256 public constant category = 1; // 1 for balancer
     // always owned by ychad
-    address public owner = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
-    address internal pendingOwner;
+    address public owner;
+    address internal pendingOwner = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
 
     function setOwner(address newOwner) external {
         require(msg.sender == owner);
@@ -205,6 +205,13 @@ contract BalancerGlobal {
     function setConvexDeposit(address _booster) external {
         require(msg.sender == owner);
         booster = IBooster(_booster);
+    }
+
+    address public governance = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+
+    function setGovernance(address _governance) external {
+        require(msg.sender == owner);
+        governance = _governance;
     }
 
     address public management = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
@@ -312,9 +319,10 @@ contract BalancerGlobal {
     //
     ////////////////////////////////////
 
-    constructor(address _registry, address _auraStratImplementation) public {
+    constructor(address _registry, address _auraStratImplementation, address _owner) public {
         registry = Registry(_registry);
         auraStratImplementation = _auraStratImplementation;
+        owner = _owner;
     }
 
     function alreadyExistsFromGauge(address _gauge)
@@ -429,8 +437,8 @@ contract BalancerGlobal {
 
         Vault v = Vault(vault);
         v.setManagement(management);
-        //set governance to owner who needs to accept before it is finalised. until then governance is this factory
-        v.setGovernance(owner);
+        //set governance to ychad who needs to accept before it is finalised. until then governance is this factory
+        v.setGovernance(governance);
         v.setDepositLimit(depositLimit);
 
         if (v.managementFee() != managementFee) {
