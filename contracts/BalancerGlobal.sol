@@ -151,10 +151,11 @@ interface Vault {
 }
 
 contract BalancerGlobal {
-    event NewAutomatedBalancerVault(
+    event NewAutomatedVault(
+        uint256 indexed category,  
         address indexed lpToken,
-        address indexed gauge,
         address indexed vault,
+        address gauge,
         address auraStrategy
     );
 
@@ -165,6 +166,7 @@ contract BalancerGlobal {
     ////////////////////////////////////
 
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
+    uint256 public constant category = 1; // 1 for balancer
     // always owned by ychad
     address public owner = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
     address internal pendingOwner;
@@ -457,6 +459,6 @@ contract BalancerGlobal {
             0
         );
 
-        emit NewAutomatedBalancerVault(lptoken, _gauge, vault, auraStrategy);
+        emit NewAutomatedVault(category, lptoken, _gauge, vault, auraStrategy);
     }
 }
