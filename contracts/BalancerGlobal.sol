@@ -359,7 +359,7 @@ contract BalancerGlobal {
     function createNewBalancerVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
-    ) external returns (address vault, address convexStrategy) {
+    ) external returns (address vault, address auraStrategy) {
         require(msg.sender == owner || msg.sender == management);
 
         return _createNewBalancerVaultsAndStrategies(_gauge, _allowDuplicate);
@@ -367,7 +367,7 @@ contract BalancerGlobal {
 
     function createNewBalancerVaultsAndStrategies(address _gauge)
         external
-        returns (address vault, address convexStrategy)
+        returns (address vault, address auraStrategy)
     {
         return _createNewBalancerVaultsAndStrategies(_gauge, false);
     }
@@ -375,7 +375,7 @@ contract BalancerGlobal {
     function _createNewBalancerVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
-    ) internal returns (address vault, address convexStrategy) {
+    ) internal returns (address vault, address auraStrategy) {
         if (!_allowDuplicate) {
             require(
                 alreadyExistsFromGauge(_gauge) == address(0),
@@ -431,7 +431,7 @@ contract BalancerGlobal {
         Vault(vault).setDepositLimit(depositLimit);
 
         //now we create the convex strat
-        convexStrategy = IStrategy(auraStratImplementation)
+        auraStrategy = IStrategy(auraStratImplementation)
             .cloneStrategyConvex(
             vault,
             management,
@@ -441,16 +441,16 @@ contract BalancerGlobal {
             tradeFactory,
             harvestProfitMaxInUsdt
         );
-        IStrategy(convexStrategy).setHealthCheck(healthCheck);
+        IStrategy(auraStrategy).setHealthCheck(healthCheck);
 
         Vault(vault).addStrategy(
-            convexStrategy,
+            auraStrategy,
             10_000,
             0,
             type(uint256).max,
             0
         );
 
-        emit NewAutomatedBalancerVault(lptoken, _gauge, vault, convexStrategy);
+        emit NewAutomatedBalancerVault(lptoken, _gauge, vault, auraStrategy);
     }
 }
