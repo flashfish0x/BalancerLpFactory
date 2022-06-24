@@ -182,7 +182,7 @@ contract BalancerGlobal {
     }
 
     address public auraPoolManager =
-        0xf843F61508Fc17543412DE55B10ED87f4C28DE50; //ToDO confirm
+        0xf843F61508Fc17543412DE55B10ED87f4C28DE50;
 
     function setAuraPoolManager(address _auraPoolManager) external {
         require(msg.sender == owner);
