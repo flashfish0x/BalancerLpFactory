@@ -164,7 +164,7 @@ contract BalancerGlobal {
     //
     ////////////////////////////////////
 
-    address public constant bal = 0xba100000625a3754423978a60c9317c58a424e3D;
+    address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
     // always owned by ychad
     address public owner = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
     address internal pendingOwner;
@@ -445,7 +445,7 @@ contract BalancerGlobal {
             tradeFactory,
             harvestProfitMaxInUsdt,
             address(booster),
-            bal
+            aura
         );
         IStrategy(auraStrategy).setHealthCheck(healthCheck);
 

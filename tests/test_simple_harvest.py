@@ -15,7 +15,6 @@ def test_simple_harvest(
     strategist_ms,
     gauge,
     booster,
-    voter,
     rewardsContract,
     amount,
 ):
