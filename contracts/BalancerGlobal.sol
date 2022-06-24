@@ -223,7 +223,7 @@ contract BalancerGlobal {
         treasury = _treasury;
     }
 
-    address public keeper = 0x736D7e3c5a6CB2CE3B764300140ABF476F6CFCCF;
+    address public keeper = 0x256e6a486075fbAdbB881516e9b6b507fd082B5D;
 
     function setKeeper(address _keeper) external {
         require(msg.sender == owner);
