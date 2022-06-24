@@ -94,7 +94,7 @@ interface IStrategy {
     function setHealthCheck(address) external;
 }
 
-interface IConvexDeposit {
+interface IBooster {
     function gaugeMap(address) external view returns (bool);
 
     // deposit into convex, receive a tokenized deposit.  parameter to stake immediately (we always do this).
@@ -147,20 +147,12 @@ interface Vault {
     ) external;
 }
 
-interface ISharerV4 {
-    function setContributors(
-        address,
-        address[] memory,
-        uint256[] memory
-    ) external;
-}
-
-contract CurveGlobal {
-    event NewAutomatedCurveVault(
+contract BalancerGlobal {
+    event NewAutomatedBalancerVault(
         address indexed lpToken,
         address indexed gauge,
         address indexed vault,
-        address convexStrategy
+        address auraStrategy
     );
 
     ///////////////////////////////////
@@ -183,12 +175,12 @@ contract CurveGlobal {
         owner = pendingOwner;
     }
 
-    address public convexPoolManager =
-        0xD1f9b3de42420A295C33c07aa5C9e04eDC6a4447;
+    address public auraPoolManager =
+        0xf843F61508Fc17543412DE55B10ED87f4C28DE50; //ToDO confirm
 
-    function setConvexPoolManager(address _convexPoolManager) external {
+    function setAuraPoolManager(address _auraPoolManager) external {
         require(msg.sender == owner);
-        convexPoolManager = _convexPoolManager;
+        auraPoolManager = _auraPoolManager;
     }
 
     Registry public registry; //= Registry(address(0x50c1a2eA0a861A967D9d0FFE2AE4012c2E053804));
@@ -198,12 +190,12 @@ contract CurveGlobal {
         registry = Registry(_registry);
     }
 
-    IConvexDeposit public convexDeposit =
-        IConvexDeposit(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
+    IBooster public booster =
+        IBooster(0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10);
 
-    function setConvexDeposit(address _convexDeposit) external {
+    function setConvexDeposit(address _booster) external {
         require(msg.sender == owner);
-        convexDeposit = IConvexDeposit(_convexDeposit);
+        booster = IBooster(_booster);
     }
 
     address public management = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
@@ -262,20 +254,13 @@ contract CurveGlobal {
         depositLimit = _depositLimit;
     }
 
-    address public convexStratImplementation;
+    address public auraStratImplementation;
 
-    function setConvexStratImplementation(address _convexStratImplementation)
+    function setAuraStratImplementation(address _auraStratImplementation)
         external
     {
         require(msg.sender == owner);
-        convexStratImplementation = _convexStratImplementation;
-    }
-
-    bool public allConvex = true;
-
-    function setAllConvex(bool _allConvex) external {
-        require(msg.sender == owner || msg.sender == management);
-        allConvex = _allConvex;
+        auraStratImplementation = _auraStratImplementation;
     }
 
     uint256 public keepCRV = 0; // the percentage of CRV we re-lock for boost (in basis points).Default is 0%.
@@ -318,9 +303,9 @@ contract CurveGlobal {
     //
     ////////////////////////////////////
 
-    constructor(address _registry, address _convexStratImplementation) public {
+    constructor(address _registry, address _auraStratImplementation) public {
         registry = Registry(_registry);
-        convexStratImplementation = _convexStratImplementation;
+        auraStratImplementation = _auraStratImplementation;
     }
 
     function alreadyExistsFromGauge(address _gauge)
@@ -356,13 +341,13 @@ contract CurveGlobal {
     function getPid(address _gauge) public view returns (uint256 pid) {
         pid = type(uint256).max;
 
-        if (!convexDeposit.gaugeMap(_gauge)) {
+        if (!booster.gaugeMap(_gauge)) {
             return pid;
         }
 
-        for (uint256 i = convexDeposit.poolLength(); i > 0; i--) {
+        for (uint256 i = booster.poolLength(); i > 0; i--) {
             //we start at the end and work back for most recent
-            (, , address gauge, , , ) = convexDeposit.poolInfo(i - 1);
+            (, , address gauge, , , ) = booster.poolInfo(i - 1);
 
             if (_gauge == gauge) {
                 return i - 1;
@@ -371,23 +356,23 @@ contract CurveGlobal {
     }
 
     // only permissioned users can deploy if there is already one endorsed
-    function createNewCurveVaultsAndStrategies(
+    function createNewBalancerVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
     ) external returns (address vault, address convexStrategy) {
         require(msg.sender == owner || msg.sender == management);
 
-        return _createNewCurveVaultsAndStrategies(_gauge, _allowDuplicate);
+        return _createNewBalancerVaultsAndStrategies(_gauge, _allowDuplicate);
     }
 
-    function createNewCurveVaultsAndStrategies(address _gauge)
+    function createNewBalancerVaultsAndStrategies(address _gauge)
         external
         returns (address vault, address convexStrategy)
     {
-        return _createNewCurveVaultsAndStrategies(_gauge, false);
+        return _createNewBalancerVaultsAndStrategies(_gauge, false);
     }
 
-    function _createNewCurveVaultsAndStrategies(
+    function _createNewBalancerVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
     ) internal returns (address vault, address convexStrategy) {
@@ -403,10 +388,10 @@ contract CurveGlobal {
         uint256 pid = getPid(_gauge);
         if (pid == type(uint256).max) {
             //when we add the new pool it will be added to the end of the pools in convexDeposit.
-            pid = convexDeposit.poolLength();
+            pid = booster.poolLength();
             //add pool
             require(
-                IPoolManager(convexPoolManager).addPool(_gauge),
+                IPoolManager(auraPoolManager).addPool(_gauge),
                 "Unable to add pool to Convex"
             );
         }
@@ -446,7 +431,7 @@ contract CurveGlobal {
         Vault(vault).setDepositLimit(depositLimit);
 
         //now we create the convex strat
-        convexStrategy = IStrategy(convexStratImplementation)
+        convexStrategy = IStrategy(auraStratImplementation)
             .cloneStrategyConvex(
             vault,
             management,
@@ -466,6 +451,6 @@ contract CurveGlobal {
             0
         );
 
-        emit NewAutomatedCurveVault(lptoken, _gauge, vault, convexStrategy);
+        emit NewAutomatedBalancerVault(lptoken, _gauge, vault, convexStrategy);
     }
 }
