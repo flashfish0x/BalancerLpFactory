@@ -171,6 +171,11 @@ contract BalancerGlobal {
     address[] public deployedVaults;
     uint256 public numVaults;
 
+
+    function allDeployedVaults() external view returns (address[] memory) {
+        return deployedVaults;
+    }
+
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
     uint256 public constant category = 1; // 1 for balancer
     // always owned by ychad
