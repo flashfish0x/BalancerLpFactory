@@ -297,6 +297,11 @@ def vault(
 @pytest.fixture(scope="module")
 def badgerweth_gauge(Contract):
     yield Contract("af50825b010ae4839ac444f6c12d44b96819739b")
+@pytest.fixture(scope="module")
+def other_gauge(Contract):
+    yield Contract("0xcD4722B7c24C29e0413BDCd9e51404B4539D14aE")
+
+    
 
 @pytest.fixture(scope="function")
 def Vault(pm):

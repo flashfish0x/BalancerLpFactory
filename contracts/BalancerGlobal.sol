@@ -94,6 +94,9 @@ interface IStrategy {
 
     ) external returns (address newStrategy);
 
+    function updateVoters(address _curveVoter, address _convexVoter) external;
+    function updateLocalKeepCrvs(uint256 _keepCrv,uint256 _keepCvx) external;
+
     function setHealthCheck(address) external;
 }
 
@@ -202,7 +205,7 @@ contract BalancerGlobal {
     IBooster public booster =
         IBooster(0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10);
 
-    function setConvexDeposit(address _booster) external {
+    function setBooster(address _booster) external {
         require(msg.sender == owner);
         booster = IBooster(_booster);
     }
@@ -238,32 +241,25 @@ contract BalancerGlobal {
     address public keeper = 0x256e6a486075fbAdbB881516e9b6b507fd082B5D;
 
     function setKeeper(address _keeper) external {
-        require(msg.sender == owner);
+        require(msg.sender == owner || msg.sender == management);
         keeper = _keeper;
-    }
-
-    address public rewardsStrat = 0xc491599b9A20c3A2F0A85697Ee6D9434EFa9f503;
-
-    function setStratRewards(address _rewards) external {
-        require(msg.sender == owner);
-        rewardsStrat = _rewards;
     }
 
     address public healthCheck = 0xDDCea799fF1699e98EDF118e0629A974Df7DF012;
 
     function setHealthcheck(address _health) external {
-        require(msg.sender == owner);
+        require(msg.sender == owner || msg.sender == management);
         healthCheck = _health;
     }
 
     address public tradeFactory = 0xd6a8ae62f4d593DAf72E2D7c9f7bDB89AB069F06;
 
     function setTradeFactory(address _tradeFactory) external {
-        require(msg.sender == owner || msg.sender == management);
+        require(msg.sender == owner);
         tradeFactory = _tradeFactory;
     }
 
-    uint256 public depositLimit = 10_000_000 * 1e18; // some large number
+    uint256 public depositLimit = 10_000_000_000_000 * 1e18; // some large number
 
     function setDepositLimit(uint256 _depositLimit) external {
         require(msg.sender == owner || msg.sender == management);
@@ -280,12 +276,32 @@ contract BalancerGlobal {
     }
 
     uint256 public keepCRV = 0; // the percentage of CRV we re-lock for boost (in basis points).Default is 0%.
+    address public voterCRV;
 
     // Set the amount of CRV to be locked in Yearn's veCRV voter from each harvest.
-    function setKeepCRV(uint256 _keepCRV) external {
+    function setKeepCRV(uint256 _keepCRV, address _voterCRV) external {
         require(msg.sender == owner);
         require(_keepCRV <= 10_000);
+        if(_keepCRV > 0){
+            require(_voterCRV != address(0));
+        }
         keepCRV = _keepCRV;
+        voterCRV = _voterCRV;
+    }
+
+    uint256 public keepCVX = 0; // the percentage of CVX we re-lock for boost (in basis points).Default is 0%.
+    address public voterCVX;
+
+    // Set the amount of CVX to be locked in Yearn's veCVX voter from each harvest.
+    function setKeepCVX(uint256 _keepCVX, address _voterCVX) external {
+        require(msg.sender == owner);
+        require(_keepCVX <= 10_000);
+        if(_keepCVX > 0){
+            require(_voterCVX != address(0));
+        }
+        
+        keepCVX = _keepCVX;
+        voterCVX = _voterCVX;
     }
 
     uint256 public harvestProfitMaxInUsdt = 25_000 * 1e6; // what profit do we need to harvest
@@ -392,7 +408,7 @@ contract BalancerGlobal {
     function _createNewVaultsAndStrategies(
         address _gauge,
         bool _allowDuplicate
-    ) internal returns (address vault, address auraStrategy) {
+    ) internal returns (address vault, address strategy) {
         if (!_allowDuplicate) {
             require(
                 alreadyExistsFromGauge(_gauge) == address(0),
@@ -451,11 +467,11 @@ contract BalancerGlobal {
         Vault(vault).setDepositLimit(depositLimit);
 
         //now we create the convex strat
-        auraStrategy = IStrategy(auraStratImplementation)
+        strategy = IStrategy(auraStratImplementation)
             .cloneStrategyConvex(
             vault,
             management,
-            rewardsStrat,
+            management,
             keeper,
             pid,
             tradeFactory,
@@ -463,16 +479,20 @@ contract BalancerGlobal {
             address(booster),
             aura
         );
-        IStrategy(auraStrategy).setHealthCheck(healthCheck);
+        IStrategy(strategy).setHealthCheck(healthCheck);
+        if(keepCRV > 0 || keepCVX > 0){
+            IStrategy(strategy).updateVoters(voterCRV, voterCVX);
+            IStrategy(strategy).updateLocalKeepCrvs(keepCRV, keepCVX);
+        }
 
         Vault(vault).addStrategy(
-            auraStrategy,
+            strategy,
             10_000,
             0,
             type(uint256).max,
             0
         );
 
-        emit NewAutomatedVault(category, lptoken, _gauge, vault, auraStrategy);
+        emit NewAutomatedVault(category, lptoken, _gauge, vault, strategy);
     }
 }
