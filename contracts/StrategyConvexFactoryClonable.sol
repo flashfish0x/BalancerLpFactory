@@ -482,7 +482,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         delete rewardsTokens; //empty the rewardsTokens and rebuild
 
         for (uint256 i; i < rewardsContract.extraRewardsLength(); i++) {
-            address virtualRewardsPool = rewardsContract.extraRewards(0);
+            address virtualRewardsPool = rewardsContract.extraRewards(i);
             address _rewardsToken =
                 IConvexRewards(virtualRewardsPool).rewardToken();
 
