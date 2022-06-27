@@ -13,6 +13,7 @@ def test_keepers(
     pid,
     vault,
     whale,
+    interface,
     strategy,
     amount,
 ):
@@ -29,7 +30,7 @@ def test_keepers(
     #assert that money deposited to aura
     assert strategy.stakedBalance() > 0
 
-    balboost = Contract('0x1BA9e3EC7DFF02B6cfA4BBFe2180b9A3011efd39')
+    balboost = interface.ERC20(booster.poolInfo(strategy.pid())['token'])
 
 
     strategy.withdrawToConvexDepositTokens({'from': gov})
