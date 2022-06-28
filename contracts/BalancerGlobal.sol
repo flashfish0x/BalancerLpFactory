@@ -448,7 +448,7 @@ contract BalancerGlobal {
                 )
             ),
             string(
-                abi.encodePacked("yvBlp", IDetails(address(lptoken)).symbol())
+                abi.encodePacked("yvBPT-", IDetails(address(lptoken)).symbol())
             ),
             0,
             VaultType.AUTOMATED
