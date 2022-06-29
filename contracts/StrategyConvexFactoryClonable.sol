@@ -421,17 +421,17 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         usd_path[1] = address(weth);
         usd_path[2] = address(usdt);
 
-        uint256 crvValue;
+        uint256 usdtValue;
         if (_claimableBal > 0) {
             uint256[] memory crvSwap =
                 IUniswapV2Router02(sushiswap).getAmountsOut(
                     _claimableBal,
                     usd_path
                 );
-            crvValue = crvSwap[crvSwap.length - 1];
+            usdtValue = crvSwap[crvSwap.length - 1];
         }
 
-        return crvValue;
+        return usdtValue;
     }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
