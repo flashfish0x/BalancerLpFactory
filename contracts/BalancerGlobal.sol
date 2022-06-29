@@ -469,8 +469,6 @@ contract BalancerGlobal {
             v.setPerformanceFee(performanceFee);
         }
 
-        Vault(vault).setDepositLimit(depositLimit);
-
         //now we create the convex strat
         strategy = IStrategy(auraStratImplementation)
             .cloneStrategyConvex(

@@ -4,9 +4,7 @@ pragma experimental ABIEncoderV2;
 
 // These are the core Yearn libraries
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
 import "./interfaces/curve.sol";
@@ -72,6 +70,7 @@ interface IConvexRewards {
 interface IDetails {
     // get details from curve
     function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
 }
 
 interface IConvexDeposit {
@@ -103,9 +102,7 @@ interface IConvexDeposit {
 }
 
 contract StrategyConvexFactoryClonable is BaseStrategy {
-    using SafeERC20 for IERC20;
     using Address for address;
-    using SafeMath for uint256;
 
     /* ========== STATE VARIABLES ========== */
     // these should stay the same across different wants.
@@ -274,7 +271,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         stratName = string(
             abi.encodePacked(
                 IDetails(address(want)).name(),
-                " Auto-Compounding Convex Strategy"
+                " Auto-Compounding ",  IDetails(address(convexToken)).symbol(), " Strategy"
             )
         );
     }

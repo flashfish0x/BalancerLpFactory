@@ -406,6 +406,7 @@ def strategy(
 
     # make sure to include all constructor parameters needed here
     strategy = StrategyConvexFactoryClonable.at(strat)
+    print(strategy.name())
     # print(strategy.rewards())
     # print("contributors: ", sharer.viewContributors(strategy))
 
