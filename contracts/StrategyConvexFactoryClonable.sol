@@ -416,22 +416,11 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     function claimableProfitInUsdt() public view returns (uint256) {
         uint256 _claimableBal = claimableBalance();
         
-        address[] memory usd_path = new address[](3);
-        usd_path[0] = address(crv);
-        usd_path[1] = address(weth);
-        usd_path[2] = address(usdt);
+        uint256 usdtPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
+                                .latestAnswer();
 
-        uint256 usdtValue;
-        if (_claimableBal > 0) {
-            uint256[] memory crvSwap =
-                IUniswapV2Router02(sushiswap).getAmountsOut(
-                    _claimableBal,
-                    usd_path
-                );
-            usdtValue = crvSwap[crvSwap.length - 1];
-        }
-
-        return usdtValue;
+        //Get the latest oracle price for bal * amount of bal / 1e18 + 1e2 to adjust oracle price
+        return usdtPrice.mul(_claimableBal).div(1e20);
     }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
