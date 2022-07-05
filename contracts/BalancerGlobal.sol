@@ -474,7 +474,7 @@ contract BalancerGlobal {
             .cloneStrategyConvex(
             vault,
             management,
-            management,
+            treasury,
             keeper,
             pid,
             tradeFactory,
