@@ -20,13 +20,6 @@ interface IOracle {
     function latestAnswer() external view returns (uint256);
 }
 
-interface IUniswapV2Router02 {
-    function getAmountsOut(uint256 amountIn, address[] calldata path)
-        external
-        view
-        returns (uint256[] memory amounts);
-}
-
 interface IBaseFee {
     function isCurrentBaseFeeAcceptable() external view returns (bool);
 }
@@ -122,12 +115,6 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
     IERC20 public  crv;
     IERC20 public  convexToken;
-    IERC20 internal constant weth =
-        IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    IERC20 internal constant usdt =
-        IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
-    address internal constant sushiswap =
-        0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F; // default to sushiswap, more CRV and CVX liquidity there
 
     /* ========== STATE VARIABLES ========== */
     // these will likely change across different wants.
@@ -412,14 +399,14 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return false;
     }
 
-    // only checks crv
+    // only checks bal
     function claimableProfitInUsdt() public view returns (uint256) {
         uint256 _claimableBal = claimableBalance();
         
         uint256 usdtPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
                                 .latestAnswer();
 
-        //Get the latest oracle price for bal * amount of bal / 1e18 + 1e2 to adjust oracle price
+        //Get the latest oracle price for bal * amount of bal / 1e18 + 1e2 to adjust oracle price that is 1e8
         return usdtPrice.mul(_claimableBal).div(1e20);
     }
 
