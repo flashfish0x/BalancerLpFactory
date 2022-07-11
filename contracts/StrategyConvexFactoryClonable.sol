@@ -17,16 +17,7 @@ interface ITradeFactory {
 }
 
 interface IOracle {
-    function latestRoundData()
-    external
-    view
-    returns (
-      uint80 roundId,
-      int256 answer,
-      uint256 startedAt,
-      uint256 updatedAt,
-      uint80 answeredInRound
-    );
+    function latestAnswer() external view returns (uint256);
 }
 
 interface IBaseFee {
@@ -411,12 +402,12 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     // only checks bal
     function claimableProfitInUsdt() public view returns (uint256) {
         uint256 _claimableBal = claimableBalance();
-        
-        (, int256 usdtPrice, , , ) = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
-                                .latestRoundData();
+
+        uint256 usdtPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
+                                .latestAnswer();
 
         //Get the latest oracle price for bal * amount of bal / 1e18 + 1e2 to adjust oracle price that is 1e8
-        return uint256(usdtPrice).mul(_claimableBal).div(1e20);
+        return usdtPrice.mul(_claimableBal).div(1e20);
     }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
