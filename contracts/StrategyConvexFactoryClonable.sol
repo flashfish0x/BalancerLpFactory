@@ -352,9 +352,20 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     // migrate our want token to a new strategy if needed, make sure to check claimRewards first
     // also send over any CRV or CVX that is claimed; for migrations we definitely want to claim
     function prepareMigration(address _newStrategy) internal override {
-        uint256 _stakedBal = stakedBalance();
-        if (_stakedBal > 0) {
-            rewardsContract.withdrawAndUnwrap(_stakedBal, claimRewards);
+        uint256 stakedBal = stakedBalance();
+        
+        if (stakedBal > 0) {
+            rewardsContract.withdrawAndUnwrap(stakedBal, claimRewards);
+        }
+
+        uint256 crvBal = crv.balanceOf(address(this));
+        uint256 cvxBal = convexToken.balanceOf(address(this));
+
+        if (crvBal > 0){
+            crv.transfer(_newStrategy, crvBal);
+        }
+        if (cvxBal > 0){
+            convexToken.transfer(_newStrategy, cvxBal);
         }
     }
 
