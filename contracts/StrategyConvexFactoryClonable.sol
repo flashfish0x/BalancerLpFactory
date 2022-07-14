@@ -399,15 +399,16 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return false;
     }
 
-    // only checks bal
+    // only checks bal rewards. 
+    //Returns the expected value of the rewards in USDT, 1e6
     function claimableProfitInUsdt() public view returns (uint256) {
         uint256 _claimableBal = claimableBalance();
 
-        uint256 usdtPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
+        uint256 balPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
                                 .latestAnswer();
 
-        //Get the latest oracle price for bal * amount of bal / 1e18 + 1e2 to adjust oracle price that is 1e8
-        return usdtPrice.mul(_claimableBal).div(1e20);
+        //Get the latest oracle price for bal * amount of bal / (1e18 + 1e2) to adjust oracle price that is 1e8
+        return balPrice.mul(_claimableBal).div(1e20);
     }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
