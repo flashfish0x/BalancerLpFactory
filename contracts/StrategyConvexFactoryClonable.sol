@@ -134,7 +134,6 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
     bool public checkEarmark; // this determines if we should check if we need to earmark rewards before harvesting
 
-    bool public tradesEnabled;
     address public tradeFactory;
 
     // rewards token info. we can have more than 1 reward token
@@ -282,7 +281,6 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
         convexToken.safeApprove(_tradeFactory, type(uint256).max);
         tf.enable(address(convexToken), address(want));
-        tradesEnabled = true;
     }
 
     /* ========== FUNCTIONS ========== */
