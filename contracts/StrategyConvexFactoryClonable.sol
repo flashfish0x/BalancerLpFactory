@@ -329,7 +329,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
             //freed is math.min(wantBalance, toFree)
             (uint256 freed, ) = liquidatePosition(toFree);
 
-            if (_profit.add(_debtPayment) > freed) {
+            if (toFree > freed) {
                 if (_debtPayment > freed) {
                     _debtPayment = freed;
                     _profit = 0;
