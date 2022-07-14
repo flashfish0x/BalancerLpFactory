@@ -169,11 +169,13 @@ contract BalancerGlobal {
     ////////////////////////////////////
 
     address[] public deployedVaults;
-    uint256 public numVaults;
-
 
     function allDeployedVaults() external view returns (address[] memory) {
         return deployedVaults;
+    }
+
+    function numVaults() external view returns (uint256) {
+        deployedVaults.length;
     }
 
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
@@ -463,7 +465,6 @@ contract BalancerGlobal {
             VaultType.AUTOMATED
         );
         deployedVaults.push(vault);
-        numVaults = deployedVaults.length;
 
         Vault v = Vault(vault);
         v.setManagement(management);
