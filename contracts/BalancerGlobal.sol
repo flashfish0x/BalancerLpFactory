@@ -353,20 +353,20 @@ contract BalancerGlobal {
     /// @dev It is possible for more than one vault to exist for this gauge. However, this function only returns the most recent.
     /// @param _gauge The gauge address to find the latest vault for.
     /// @return address of AUTOMATED or DEFAULT vault found; 0x0 if no vault of these types is found.
-    function latestDefaultorAutomatedVaultFromGauge(address _gauge)
+    function latestDefaultOrAutomatedVaultFromGauge(address _gauge)
         public
         view
         returns (address)
     {
         address lptoken = ICurveGauge(_gauge).lp_token();
-        return latestDefaultorAutomatedVaultFromToken(lptoken);
+        return latestDefaultOrAutomatedVaultFromToken(lptoken);
     }
 
     /// @notice Returns only the latest vault address for any DEFAULT/AUTOMATED type vaults
     /// @dev If no vault of either DEFAULT or AUTOMATED types exists for this token, 0x0 is returned.
     /// @dev It is possible for more than one vault to exist for this token. However, this function only returns the most recent.    /// @param lptoken The lp token address to find the latest vault for.
     /// @return address of AUTOMATED or DEFAULT vault found; 0x0 if no vault of these types is found.
-    function latestDefaultorAutomatedVaultFromToken(address _lptoken)
+    function latestDefaultOrAutomatedVaultFromToken(address _lptoken)
         public
         view
         returns (address)
@@ -427,7 +427,7 @@ contract BalancerGlobal {
     ) internal returns (address vault, address strategy) {
         if (!_allowDuplicate) {
             require(
-                latestDefaultorAutomatedVaultFromGauge(_gauge) == address(0),
+                latestDefaultOrAutomatedVaultFromGauge(_gauge) == address(0),
                 "Vault already exists"
             );
         }
