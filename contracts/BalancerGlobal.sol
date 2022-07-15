@@ -88,6 +88,7 @@ interface IStrategy {
         address _keeper,
         uint256 _pid,
         address _tradeFactory,
+        uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
         address _booster,
         address _convexToken
@@ -309,6 +310,15 @@ contract BalancerGlobal {
         voterCVX = _voterCVX;
     }
 
+    uint256 public harvestProfitMinInUsdt = 25_000 * 1e6; // what profit do we need to harvest
+
+    function setHarvestProfitMinInUsdt(uint256 _harvestProfitMinInUsdt)
+        external
+    {
+        require(msg.sender == owner || msg.sender == management);
+        harvestProfitMinInUsdt = _harvestProfitMinInUsdt;
+    }
+
     uint256 public harvestProfitMaxInUsdt = 25_000 * 1e6; // what profit do we need to harvest
 
     function setHarvestProfitMaxInUsdt(uint256 _harvestProfitMaxInUsdt)
@@ -478,6 +488,7 @@ contract BalancerGlobal {
             keeper,
             pid,
             tradeFactory,
+            harvestProfitMinInUsdt,
             harvestProfitMaxInUsdt,
             address(booster),
             aura

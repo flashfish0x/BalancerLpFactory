@@ -149,11 +149,12 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _vault,
         address _tradeFactory,
         uint256 _pid,
+        uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
         address _booster,
         address _convexToken
     ) public BaseStrategy(_vault) {
-        _initializeStrat(_pid, _tradeFactory, _harvestProfitMax, _booster, _convexToken);
+        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _booster, _convexToken);
     }
 
     /* ========== CLONING ========== */
@@ -168,6 +169,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _keeper,
         uint256 _pid,
         address _tradeFactory,
+        uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
         address _booster,
         address _convexToken
@@ -197,6 +199,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
             _keeper,
             _pid,
             _tradeFactory,
+            _harvestProfitMin,
             _harvestProfitMax,
             _booster,
             _convexToken
@@ -213,18 +216,20 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _keeper,
         uint256 _pid,
         address _tradeFactory,
+        uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
         address _booster,
         address _convexToken
     ) public {
         _initialize(_vault, _strategist, _rewards, _keeper);
-        _initializeStrat(_pid, _tradeFactory, _harvestProfitMax, _booster, _convexToken);
+        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _booster, _convexToken);
     }
 
     // this is called by our original strategy, as well as any clones
     function _initializeStrat(
         uint256 _pid,
         address _tradeFactory,
+        uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
         address _booster,
         address _convexToken
@@ -237,9 +242,10 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         // want = Curve LP
         want.approve(address(depositContract), type(uint256).max);
 
+        // harvest profit min set to ?k usdt
         // harvest profit max set to 25k usdt. will trigger harvest in this situation
+        harvestProfitMin = _harvestProfitMin;
         harvestProfitMax = _harvestProfitMax;
-        harvestProfitMin = _harvestProfitMax;
 
         IConvexDeposit dp = IConvexDeposit(depositContract);
         crv = IERC20(dp.crv());
