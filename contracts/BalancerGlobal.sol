@@ -348,45 +348,33 @@ contract BalancerGlobal {
         owner = _owner;
     }
 
-    /// @notice Returns only the latest vault address for any DEFAULT/AUTOMATED type vaults
-    /// @dev If no vault of either DEFAULT or AUTOMATED types exists for this gauge, 0x0 is returned.
-    /// @dev It is possible for more than one vault to exist for this gauge. However, this function only returns the most recent.
-    /// @param _gauge The gauge address to find the latest vault for.
-    /// @return address of AUTOMATED or DEFAULT vault found; 0x0 if no vault of these types is found.
+    /// @notice Public function to check whether, for a given gauge address, its possible to permissionlessly create a vault for corressponding LP token
+    /// @param _gauge The gauge address to find the latest vault for
+    /// @return bool if true, vault can be created permissionlessly
+    function canCreateVaultPermissionlessly(address _gauge) public view returns (bool) {
+        return latestDefaultOrAutomatedVaultFromGauge(_gauge) == address(0);
+    }
+
+    /// @dev Returns only the latest vault address for any DEFAULT/AUTOMATED type vaults
+    /// @dev If no vault of either DEFAULT or AUTOMATED types exists for this gauge, 0x0 is returned from registry.
     function latestDefaultOrAutomatedVaultFromGauge(address _gauge)
-        public
+        internal
         view
         returns (address)
     {
         address lptoken = ICurveGauge(_gauge).lp_token();
-        return latestDefaultOrAutomatedVaultFromToken(lptoken);
-    }
-
-    /// @notice Returns only the latest vault address for any DEFAULT/AUTOMATED type vaults
-    /// @dev If no vault of either DEFAULT or AUTOMATED types exists for this token, 0x0 is returned.
-    /// @dev It is possible for more than one vault to exist for this token. However, this function only returns the most recent.    /// @param lptoken The lp token address to find the latest vault for.
-    /// @return address of AUTOMATED or DEFAULT vault found; 0x0 if no vault of these types is found.
-    function latestDefaultOrAutomatedVaultFromToken(address _lptoken)
-        public
-        view
-        returns (address)
-    {
-        if (!registry.isRegistered(_lptoken)) {
+        if (!registry.isRegistered(lptoken)) {
             return address(0);
         }
 
-        // check default vault followed by automated
-        bytes memory data =
-            abi.encodeWithSignature("latestVault(address)", _lptoken);
-        (bool success, ) = address(registry).staticcall(data);
-        if (success) {
-            return registry.latestVault(_lptoken);
-        } else {
-            return registry.latestVault(_lptoken, VaultType.AUTOMATED);
+        address latest = registry.latestVault(lptoken);
+        if (latest == address(0)) {
+            return registry.latestVault(lptoken, VaultType.AUTOMATED);
         }
+
+        return latest;
     }
 
-    //very annoying
     function getPid(address _gauge) public view returns (uint256 pid) {
         pid = type(uint256).max;
 
@@ -427,7 +415,7 @@ contract BalancerGlobal {
     ) internal returns (address vault, address strategy) {
         if (!_allowDuplicate) {
             require(
-                latestDefaultOrAutomatedVaultFromGauge(_gauge) == address(0),
+                canCreateVaultPermissionlessly(_gauge),
                 "Vault already exists"
             );
         }

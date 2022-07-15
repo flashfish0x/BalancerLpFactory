@@ -384,8 +384,8 @@ def strategy(
     new_registry.setRole(BalancerGlobal, False, True, {"from": registry_owner})
 
     
-    print("curve gloval: ", BalancerGlobal)
-    print("badger weth guage: ", badgerweth_gauge)
+    print("curve global: ", BalancerGlobal)
+    print("badger weth gauge: ", badgerweth_gauge)
     print("strategist: ", strategist)
     
 

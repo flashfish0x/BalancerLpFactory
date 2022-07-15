@@ -1,4 +1,6 @@
 import brownie
+from brownie import Contract
+
 def test_keepers(
     gov,
     accounts,
@@ -24,6 +26,25 @@ def test_keepers(
 
     with brownie.reverts("Vault already exists"):
         balancer_global.createNewVaultsAndStrategies(badgerweth_gauge, {"from": strategist})
+
+def test_can_create(BalancerGlobal):
+    example_gauges = [
+        '0xE867AD0a48e8f815DC0cda2CDb275e0F163A480b',
+        '0xf01541837CF3A64BC957F53678b0AB113e92911b',
+        '0xc3bB46B8196C3F188c6A373a6C4Fde792CA78653'
+    ]
+
+    gauge_controller = Contract("0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD")
+    registry = Contract("0x78f73705105A63e06B932611643E0b210fAE93E9")
+    for g in example_gauges:
+        token = Contract(g).lp_token()
+        print(f'can create (from factory): {BalancerGlobal.canCreateVaultPermissionlessly(g)}')
+        print(f'token: {token}')
+        print(f'is registered: {registry.isRegistered(token)}')
+        print(f'DEFAULT type vault for token: {registry.latestVault(token)}')
+        print(f'AUTOMATED type vault for token: {registry.latestVault(token, 1)}\n')
+
+
 
 
 def test_keeps(
