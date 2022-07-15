@@ -310,7 +310,7 @@ contract BalancerGlobal {
         voterCVX = _voterCVX;
     }
 
-    uint256 public harvestProfitMinInUsdt = 25_000 * 1e6; // what profit do we need to harvest
+    uint256 public harvestProfitMinInUsdt = 10_000 * 1e6; // what profit do we need to harvest
 
     function setHarvestProfitMinInUsdt(uint256 _harvestProfitMinInUsdt)
         external
