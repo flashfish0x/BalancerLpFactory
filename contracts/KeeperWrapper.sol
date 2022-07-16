@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 
 interface IStrategy {
     function harvest() external;
-    function deployCredit() external;
+    function invest() external;
 }
 
 contract KeeperWrapper {
@@ -16,8 +16,8 @@ contract KeeperWrapper {
         emit PublicHarvest(msg.sender, _strategy);
     }
 
-    function invest(address _strategy) external {
-        IStrategy(_strategy).deployCredit();
+    function investFunds(address _strategy) external {
+        IStrategy(_strategy).invest();
         emit PublicInvest(msg.sender, _strategy);
     }
 }

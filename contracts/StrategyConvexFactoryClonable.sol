@@ -123,6 +123,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     uint256 public harvestProfitMin; // minimum size in USDT that we want to harvest
     uint256 public harvestProfitMax; // maximum size in USDT that we want to harvest
     bool internal forceHarvestTriggerOnce; // only set this to true when we want to trigger our keepers to harvest for us
+    bool internal forceInvestTriggerOnce; // only set this to true when we want to trigger our keepers to invest for us
 
     string internal stratName; // we use this to be able to adjust our strategy's name
 
@@ -242,7 +243,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         // want = Curve LP
         want.approve(address(depositContract), type(uint256).max);
 
-        // harvest profit min set to ?k usdt
+        // harvest profit min set to 10k usdt. will harvest if gas conditions are met
         // harvest profit max set to 25k usdt. will trigger harvest in this situation
         harvestProfitMin = _harvestProfitMin;
         harvestProfitMax = _harvestProfitMax;
@@ -405,6 +406,38 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return false;
     }
 
+    // // use this to determine when to invest automagically
+    // function investTrigger(uint256 callCostinEth)
+    //     public
+    //     view
+    //     override
+    //     returns (bool)
+    // {
+    //     // invest if we have available funds to deploy at our upper limit without considering gas price
+    //     uint256 deployableFunds = deployableFundsInUsdt();
+    //     if (deployableFunds > harvestProfitMax) {
+    //         return true;
+    //     }
+
+    //     // check if the base fee gas price is higher than we allow. if it is, block investing
+    //     if (!isBaseFeeAcceptable()) {
+    //         return false;
+    //     }
+
+    //     // trigger if we want to manually invest, but only if our gas price is acceptable
+    //     if (forceInvestTriggerOnce) {
+    //         return true;
+    //     }
+
+    //     // invest if we have a sufficient amount of deployable funds, but only if our gas price is acceptable
+    //     if (deployableFunds > investFundsMin) {
+    //         return true;
+    //     }
+
+    //     // otherwise, we don't invest
+    //     return false;
+    // }
+
     // only checks bal rewards. 
     //Returns the expected value of the rewards in USDT, 1e6
     function claimableProfitInUsdt() public view returns (uint256) {
@@ -416,6 +449,17 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         //Get the latest oracle price for bal * amount of bal / (1e18 + 1e2) to adjust oracle price that is 1e8
         return balPrice.mul(_claimableBal).div(1e20);
     }
+
+    // //Returns the value of deployable funds in USDT, 1e6
+    // function deployableFundsInUsdt() public view returns (uint256) {
+    //     uint256 _deployableFunds = deployableFunds();
+
+    //     uint256 balPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
+    //                             .latestAnswer();
+
+    //     //Get the latest oracle price for bal * amount of bal / (1e18 + 1e2) to adjust oracle price that is 1e8
+    //     return balPrice.mul(_claimableBal).div(1e20);
+    // }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
     function ethToWant(uint256 _ethAmount)
@@ -513,6 +557,11 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return rewardsContract.earned(address(this));
     }
 
+    function deployableFunds() public view returns (uint256) {
+        // how many BPTs we have available in the vault
+        return vault.creditAvailable(address(this));
+    }
+
     function estimatedTotalAssets() public view override returns (uint256) {
         return balanceOfWant().add(stakedBalance());
     }
@@ -520,7 +569,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     /* ========== CONSTANT FUNCTIONS ========== */
     // these should stay the same across different wants.
 
-    function deployCredit() external onlyKeepers {        
+    // deploys any available funds in the vault to the strategy without calling harvest, to save gas
+    function invest() external onlyKeepers {        
         // Send any available funds in the vault to the strategy, with (0, 0, 0) for profit, loss, debtPayment
         uint256 debtOutstanding = vault.report(0, 0, 0);
 
@@ -664,5 +714,13 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         onlyAuthorized
     {
         forceHarvestTriggerOnce = _forceHarvestTriggerOnce;
+    }
+
+    // This allows us to manually invest with our keeper as needed
+    function setForceInvestTriggerOnce(bool _forceInvestTriggerOnce)
+        external
+        onlyAuthorized
+    {
+        forceInvestTriggerOnce = _forceInvestTriggerOnce;
     }
 }
