@@ -175,7 +175,7 @@ contract BalancerGlobal {
     }
 
     function numVaults() external view returns (uint256) {
-        deployedVaults.length;
+        return deployedVaults.length;
     }
 
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
@@ -432,7 +432,6 @@ contract BalancerGlobal {
                 "Unable to add pool to Aura"
             );
         }
-
         //now we create the vault, endorses it as well
         vault = registry.newVault(
             lptoken,
@@ -466,19 +465,18 @@ contract BalancerGlobal {
         if (v.performanceFee() != performanceFee) {
             v.setPerformanceFee(performanceFee);
         }
-
         //now we create the convex strat
         strategy = IStrategy(auraStratImplementation)
             .cloneStrategyConvex(
-            vault,
-            management,
-            treasury,
-            keeper,
-            pid,
-            tradeFactory,
-            harvestProfitMaxInUsdt,
-            address(booster),
-            aura
+                vault,
+                management,
+                treasury,
+                keeper,
+                pid,
+                tradeFactory,
+                harvestProfitMaxInUsdt,
+                address(booster),
+                aura
         );
         IStrategy(strategy).setHealthCheck(healthCheck);
         if(keepCRV > 0 || keepCVX > 0){

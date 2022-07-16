@@ -249,10 +249,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         require(address(lptoken) == address(want));
 
         tradeFactory = _tradeFactory;
-
         _updateRewards();
         _setUpTradeFactory();
-
         // set our strategy's name
         stratName = string(
             abi.encodePacked(
