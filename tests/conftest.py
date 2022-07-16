@@ -374,7 +374,7 @@ def strategy(
 
     # print(next_contract)
 
-    s = strategist.deploy(StrategyConvexFactoryClonable, v2, new_trade_factory, pid, 25_000*1e6, booster, auraToken)
+    s = strategist.deploy(StrategyConvexFactoryClonable, v2, new_trade_factory, pid, 10_000*1e6, 25_000*1e6, booster, auraToken)
     BalancerGlobal.setAuraStratImplementation(s, {"from": gov})
     print("convex impl: ", s)
     
