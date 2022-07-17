@@ -27,7 +27,7 @@ def test_keepers(
     with brownie.reverts("Vault already exists"):
         balancer_global.createNewVaultsAndStrategies(badgerweth_gauge, {"from": strategist})
 
-def test_can_create(balancer_global, strategy, strategist, new_registry, accounts):
+def test_can_create(balancer_global, strategy, strategist, new_registry, accounts, StrategyConvexFactoryClonable):
     registry_owner = accounts.at(new_registry.owner(), force=True)
     new_registry.setApprovedVaultsOwner(balancer_global, True, {"from": registry_owner})
     new_registry.setRole(balancer_global, False, True, {"from": registry_owner})
@@ -60,6 +60,8 @@ def test_can_create(balancer_global, strategy, strategist, new_registry, account
                 balancer_global.createNewVaultsAndStrategies(g, {"from": strategist})
         else:
             tx = balancer_global.createNewVaultsAndStrategies(g, {"from": strategist})
+            strat = StrategyConvexFactoryClonable.at(tx.events['NewAutomatedVault']['strategy'])
+            assert strat.claimableProfitInUsdt() >= 0
 
 
 def test_keeps(

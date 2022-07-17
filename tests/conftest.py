@@ -393,7 +393,6 @@ def strategy(
     print("badger weth gauge: ", badgerweth_gauge)
     print("strategist: ", strategist)
     
-
     BalancerGlobal.createNewVaultsAndStrategies(
         badgerweth_gauge, {"from": strategist}
     )
