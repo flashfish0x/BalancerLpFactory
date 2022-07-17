@@ -484,7 +484,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         localKeepCVX = _keepCvx;
     }
 
-    // Use to turn off extra rewards claiming and selling. set our allowance to zero on the router and set address to zero address.
+    // Use to turn off extra rewards claiming and selling.
     function turnOffRewards() external onlyGovernance {
         delete rewardsTokens;
     }
