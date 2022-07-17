@@ -265,19 +265,19 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _tradeFactory = tradeFactory;
 
         ITradeFactory tf = ITradeFactory(_tradeFactory);
-        crv.safeApprove(_tradeFactory, type(uint256).max);
+        crv.approve(_tradeFactory, type(uint256).max);
         tf.enable(address(crv), address(want));
 
         //enable for all rewards tokens too
         for (uint256 i; i < rewardsTokens.length; i++) {
-            IERC20(rewardsTokens[i]).safeApprove(
+            IERC20(rewardsTokens[i]).approve(
                 _tradeFactory,
                 type(uint256).max
             );
             tf.enable(rewardsTokens[i], address(want));
         }
 
-        convexToken.safeApprove(_tradeFactory, type(uint256).max);
+        convexToken.approve(_tradeFactory, type(uint256).max);
         tf.enable(address(convexToken), address(want));
     }
 
@@ -637,16 +637,16 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         }
         ITradeFactory tf = ITradeFactory(_tradeFactory);
 
-        crv.safeApprove(_tradeFactory, 0);
+        crv.approve(_tradeFactory, 0);
         tf.disable(address(crv), address(want));
 
         //disable for all rewards tokens too
         for (uint256 i; i < rewardsTokens.length; i++) {
-            IERC20(rewardsTokens[i]).safeApprove(_tradeFactory, 0);
+            IERC20(rewardsTokens[i]).approve(_tradeFactory, 0);
             tf.disable(rewardsTokens[i], address(want));
         }
 
-        convexToken.safeApprove(_tradeFactory, 0);
+        convexToken.approve(_tradeFactory, 0);
         tf.disable(address(convexToken), address(want));
 
         tradeFactory = address(0);
