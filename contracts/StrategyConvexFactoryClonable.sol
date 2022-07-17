@@ -559,7 +559,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
     function deployableFunds() public view returns (uint256) {
         // how many BPTs we have available in the vault
-        return vault.creditAvailable(address(this));
+        return vault.creditAvailable();
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
