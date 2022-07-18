@@ -6,7 +6,7 @@ import time, re, json, requests
 import web3
 from web3 import HTTPProvider
 
-#@pytest.fixture(scope="module", autouse=True)
+# @pytest.fixture(scope="module", autouse=True)
 def tenderly_fork(web3):
     fork_base_url = "https://simulate.yearn.network/fork"
     payload = {"network_id": "1"}
@@ -28,6 +28,10 @@ def isolation(fn_isolation):
 @pytest.fixture(scope="module")
 def new_registry(interface):
     yield interface.IRegistry("0x78f73705105A63e06B932611643E0b210fAE93E9")
+
+@pytest.fixture(scope="module")
+def gauge_controller(interface):
+    yield Contract("0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD")
 
 
 # put our pool's convex pid here; this is the only thing that should need to change up here **************
@@ -330,8 +334,8 @@ def ymechs_safe():
     yield Contract("0x2C01B4AD51a67E2d8F02208F54dF9aC4c0B778B6")
 
 @pytest.fixture(scope="function")
-def balancer_global(BalancerGlobal, strategist, new_registry, gov, gasOracle):
-    bg = strategist.deploy(BalancerGlobal, new_registry, gasOracle, gov)
+def balancer_global(BalancerGlobal, strategist, new_registry, gov):
+    bg = strategist.deploy(BalancerGlobal, new_registry, gov, gov)
     
     yield bg
 
@@ -363,6 +367,7 @@ def strategy(
     new_registry,
     strategist_ms,
     badgerweth_gauge,
+    gauge_controller
 ):
 
     BalancerGlobal = balancer_global
@@ -375,20 +380,19 @@ def strategy(
     # print(next_contract)
 
     s = strategist.deploy(StrategyConvexFactoryClonable, v2, new_trade_factory, pid, 25_000*1e6, booster, auraToken)
-    BalancerGlobal.setAuraStratImplementation(s, {"from": gov})
+    balancer_global.setAuraStratImplementation(s, {"from": gov})
     print("convex impl: ", s)
     
 
     registry_owner = accounts.at(new_registry.owner(), force=True)
-    new_registry.setApprovedVaultsOwner(BalancerGlobal, True, {"from": registry_owner})
-    new_registry.setRole(BalancerGlobal, False, True, {"from": registry_owner})
+    new_registry.setApprovedVaultsOwner(balancer_global, True, {"from": registry_owner})
+    new_registry.setRole(balancer_global, False, True, {"from": registry_owner})
 
     
-    print("curve gloval: ", BalancerGlobal)
-    print("badger weth guage: ", badgerweth_gauge)
+    print("curve global: ", BalancerGlobal)
+    print("badger weth gauge: ", badgerweth_gauge)
     print("strategist: ", strategist)
     
-
     BalancerGlobal.createNewVaultsAndStrategies(
         badgerweth_gauge, {"from": strategist}
     )
@@ -396,7 +400,9 @@ def strategy(
     print("endorsed")
 
     
-    vault = Vault.at(BalancerGlobal.alreadyExistsFromGauge(badgerweth_gauge))
+    # vault = Vault.at(BalancerGlobal.alreadyExistsFromGauge(badgerweth_gauge))
+    token = badgerweth_gauge.lp_token()
+    vault = Contract(new_registry.latestVault(token, 1))
     strat = vault.withdrawalQueue(0)
     # test a default type
     # assert (

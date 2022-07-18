@@ -20,6 +20,17 @@ interface IOracle {
     function latestAnswer() external view returns (uint256);
 }
 
+interface IFeedRegistry {
+    function getFeed(address, address) external view returns (address);
+    function latestRoundData(address, address) external view returns (
+        uint80 roundId,
+        int256 answer,
+        uint256 startedAt,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    );
+}
+
 interface IBaseFee {
     function isCurrentBaseFeeAcceptable() external view returns (bool);
 }
@@ -134,7 +145,6 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
     bool public checkEarmark; // this determines if we should check if we need to earmark rewards before harvesting
 
-    bool public tradesEnabled;
     address public tradeFactory;
 
     // rewards token info. we can have more than 1 reward token
@@ -250,10 +260,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         require(address(lptoken) == address(want));
 
         tradeFactory = _tradeFactory;
-
         _updateRewards();
         _setUpTradeFactory();
-
         // set our strategy's name
         stratName = string(
             abi.encodePacked(
@@ -268,21 +276,20 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _tradeFactory = tradeFactory;
 
         ITradeFactory tf = ITradeFactory(_tradeFactory);
-        crv.safeApprove(_tradeFactory, type(uint256).max);
+        crv.approve(_tradeFactory, type(uint256).max);
         tf.enable(address(crv), address(want));
 
         //enable for all rewards tokens too
         for (uint256 i; i < rewardsTokens.length; i++) {
-            IERC20(rewardsTokens[i]).safeApprove(
+            IERC20(rewardsTokens[i]).approve(
                 _tradeFactory,
                 type(uint256).max
             );
             tf.enable(rewardsTokens[i], address(want));
         }
 
-        convexToken.safeApprove(_tradeFactory, type(uint256).max);
+        convexToken.approve(_tradeFactory, type(uint256).max);
         tf.enable(address(convexToken), address(want));
-        tradesEnabled = true;
     }
 
     /* ========== FUNCTIONS ========== */
@@ -331,7 +338,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
             //freed is math.min(wantBalance, toFree)
             (uint256 freed, ) = liquidatePosition(toFree);
 
-            if (_profit.add(_debtPayment) > freed) {
+            if (toFree > freed) {
                 if (_debtPayment > freed) {
                     _debtPayment = freed;
                     _profit = 0;
@@ -352,9 +359,20 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     // migrate our want token to a new strategy if needed, make sure to check claimRewards first
     // also send over any CRV or CVX that is claimed; for migrations we definitely want to claim
     function prepareMigration(address _newStrategy) internal override {
-        uint256 _stakedBal = stakedBalance();
-        if (_stakedBal > 0) {
-            rewardsContract.withdrawAndUnwrap(_stakedBal, claimRewards);
+        uint256 stakedBal = stakedBalance();
+        
+        if (stakedBal > 0) {
+            rewardsContract.withdrawAndUnwrap(stakedBal, claimRewards);
+        }
+
+        uint256 crvBal = crv.balanceOf(address(this));
+        uint256 cvxBal = convexToken.balanceOf(address(this));
+
+        if (crvBal > 0){
+            crv.transfer(_newStrategy, crvBal);
+        }
+        if (cvxBal > 0){
+            convexToken.transfer(_newStrategy, cvxBal);
         }
     }
 
@@ -402,13 +420,13 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     // only checks bal rewards. 
     //Returns the expected value of the rewards in USDT, 1e6
     function claimableProfitInUsdt() public view returns (uint256) {
-        uint256 _claimableBal = claimableBalance();
-
-        uint256 balPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
-                                .latestAnswer();
+        (, int256 crvPrice,,,) = IFeedRegistry(0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf).latestRoundData(
+            address(crv),
+            address(0x0000000000000000000000000000000000000348) // USD
+        );
 
         //Get the latest oracle price for bal * amount of bal / (1e18 + 1e2) to adjust oracle price that is 1e8
-        return balPrice.mul(_claimableBal).div(1e20);
+        return uint256(crvPrice).mul(claimableBalance()).div(1e20);
     }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
@@ -455,7 +473,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     function _updateRewards() internal {
         delete rewardsTokens; //empty the rewardsTokens and rebuild
 
-        for (uint256 i; i < rewardsContract.extraRewardsLength(); i++) {
+        uint256 length = rewardsContract.extraRewardsLength();
+        for (uint256 i; i < length; i++) {
             address virtualRewardsPool = rewardsContract.extraRewards(i);
             address _rewardsToken =
                 IConvexRewards(virtualRewardsPool).rewardToken();
@@ -476,7 +495,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         localKeepCVX = _keepCvx;
     }
 
-    // Use to turn off extra rewards claiming and selling. set our allowance to zero on the router and set address to zero address.
+    // Use to turn off extra rewards claiming and selling.
     function turnOffRewards() external onlyGovernance {
         delete rewardsTokens;
     }
@@ -629,16 +648,16 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         }
         ITradeFactory tf = ITradeFactory(_tradeFactory);
 
-        crv.safeApprove(_tradeFactory, 0);
+        crv.approve(_tradeFactory, 0);
         tf.disable(address(crv), address(want));
 
         //disable for all rewards tokens too
         for (uint256 i; i < rewardsTokens.length; i++) {
-            IERC20(rewardsTokens[i]).safeApprove(_tradeFactory, 0);
+            IERC20(rewardsTokens[i]).approve(_tradeFactory, 0);
             tf.disable(rewardsTokens[i], address(want));
         }
 
-        convexToken.safeApprove(_tradeFactory, 0);
+        convexToken.approve(_tradeFactory, 0);
         tf.disable(address(convexToken), address(want));
 
         tradeFactory = address(0);

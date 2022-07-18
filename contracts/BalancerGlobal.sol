@@ -169,11 +169,13 @@ contract BalancerGlobal {
     ////////////////////////////////////
 
     address[] public deployedVaults;
-    uint256 public numVaults;
-
 
     function allDeployedVaults() external view returns (address[] memory) {
         return deployedVaults;
+    }
+
+    function numVaults() external view returns (uint256) {
+        return deployedVaults.length;
     }
 
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
@@ -346,36 +348,33 @@ contract BalancerGlobal {
         owner = _owner;
     }
 
-    function alreadyExistsFromGauge(address _gauge)
-        public
+    /// @notice Public function to check whether, for a given gauge address, its possible to permissionlessly create a vault for corressponding LP token
+    /// @param _gauge The gauge address to find the latest vault for
+    /// @return bool if true, vault can be created permissionlessly
+    function canCreateVaultPermissionlessly(address _gauge) public view returns (bool) {
+        return latestDefaultOrAutomatedVaultFromGauge(_gauge) == address(0);
+    }
+
+    /// @dev Returns only the latest vault address for any DEFAULT/AUTOMATED type vaults
+    /// @dev If no vault of either DEFAULT or AUTOMATED types exists for this gauge, 0x0 is returned from registry.
+    function latestDefaultOrAutomatedVaultFromGauge(address _gauge)
+        internal
         view
         returns (address)
     {
         address lptoken = ICurveGauge(_gauge).lp_token();
-        return alreadyExistsFromToken(lptoken);
-    }
-
-    function alreadyExistsFromToken(address lptoken)
-        public
-        view
-        returns (address)
-    {
         if (!registry.isRegistered(lptoken)) {
             return address(0);
         }
 
-        // check default vault followed by automated
-        bytes memory data =
-            abi.encodeWithSignature("latestVault(address)", lptoken);
-        (bool success, ) = address(registry).staticcall(data);
-        if (success) {
-            return registry.latestVault(lptoken);
-        } else {
+        address latest = registry.latestVault(lptoken);
+        if (latest == address(0)) {
             return registry.latestVault(lptoken, VaultType.AUTOMATED);
         }
+
+        return latest;
     }
 
-    //very annoying
     function getPid(address _gauge) public view returns (uint256 pid) {
         pid = type(uint256).max;
 
@@ -416,7 +415,7 @@ contract BalancerGlobal {
     ) internal returns (address vault, address strategy) {
         if (!_allowDuplicate) {
             require(
-                alreadyExistsFromGauge(_gauge) == address(0),
+                canCreateVaultPermissionlessly(_gauge),
                 "Vault already exists"
             );
         }
@@ -433,7 +432,6 @@ contract BalancerGlobal {
                 "Unable to add pool to Aura"
             );
         }
-
         //now we create the vault, endorses it as well
         vault = registry.newVault(
             lptoken,
@@ -454,7 +452,6 @@ contract BalancerGlobal {
             VaultType.AUTOMATED
         );
         deployedVaults.push(vault);
-        numVaults = deployedVaults.length;
 
         Vault v = Vault(vault);
         v.setManagement(management);
@@ -468,19 +465,18 @@ contract BalancerGlobal {
         if (v.performanceFee() != performanceFee) {
             v.setPerformanceFee(performanceFee);
         }
-
         //now we create the convex strat
         strategy = IStrategy(auraStratImplementation)
             .cloneStrategyConvex(
-            vault,
-            management,
-            management,
-            keeper,
-            pid,
-            tradeFactory,
-            harvestProfitMaxInUsdt,
-            address(booster),
-            aura
+                vault,
+                management,
+                treasury,
+                keeper,
+                pid,
+                tradeFactory,
+                harvestProfitMaxInUsdt,
+                address(booster),
+                aura
         );
         IStrategy(strategy).setHealthCheck(healthCheck);
         if(keepCRV > 0 || keepCVX > 0){
