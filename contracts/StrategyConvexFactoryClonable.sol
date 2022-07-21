@@ -122,6 +122,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     // keeper stuff
     uint256 public harvestProfitMin; // minimum size in USDT that we want to harvest
     uint256 public harvestProfitMax; // maximum size in USDT that we want to harvest
+    uint256 public investProfitMin; // minimum size in USDT that we want to invest
+    uint256 public investProfitMax; // maximum size in USDT that we want to invest
     bool internal forceHarvestTriggerOnce; // only set this to true when we want to trigger our keepers to harvest for us
     bool internal forceInvestTriggerOnce; // only set this to true when we want to trigger our keepers to invest for us
 
@@ -152,10 +154,12 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         uint256 _pid,
         uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
+        uint256 _investProfitMin,
+        uint256 _investProfitMax,
         address _booster,
         address _convexToken
     ) public BaseStrategy(_vault) {
-        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _booster, _convexToken);
+        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _investProfitMin, _investProfitMax, _booster, _convexToken);
     }
 
     /* ========== CLONING ========== */
@@ -172,6 +176,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _tradeFactory,
         uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
+        uint256 _investProfitMin,
+        uint256 _investProfitMax,
         address _booster,
         address _convexToken
     ) external returns (address newStrategy) {
@@ -202,6 +208,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
             _tradeFactory,
             _harvestProfitMin,
             _harvestProfitMax,
+            _investProfitMin,
+            _investProfitMax,
             _booster,
             _convexToken
         );
@@ -219,11 +227,13 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _tradeFactory,
         uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
+        uint256 _investProfitMin,
+        uint256 _investProfitMax,
         address _booster,
         address _convexToken
     ) public {
         _initialize(_vault, _strategist, _rewards, _keeper);
-        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _booster, _convexToken);
+        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _investProfitMin, _investProfitMax, _booster, _convexToken);
     }
 
     // this is called by our original strategy, as well as any clones
@@ -232,6 +242,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _tradeFactory,
         uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
+        uint256 _investProfitMin,
+        uint256 _investProfitMax,
         address _booster,
         address _convexToken
     ) internal {
@@ -247,6 +259,11 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         // harvest profit max set to 25k usdt. will trigger harvest in this situation
         harvestProfitMin = _harvestProfitMin;
         harvestProfitMax = _harvestProfitMax;
+
+        // harvest profit min set to ?k usdt. will invest if gas conditions are met
+        // harvest profit max set to ?k usdt. will trigger invest in this situation
+        investProfitMin = _investProfitMin;
+        investProfitMax = _investProfitMax;
 
         IConvexDeposit dp = IConvexDeposit(depositContract);
         crv = IERC20(dp.crv());
@@ -406,37 +423,37 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return false;
     }
 
-    // // use this to determine when to invest automagically
-    // function investTrigger(uint256 callCostinEth)
-    //     public
-    //     view
-    //     override
-    //     returns (bool)
-    // {
-    //     // invest if we have available funds to deploy at our upper limit without considering gas price
-    //     uint256 deployableFunds = deployableFundsInUsdt();
-    //     if (deployableFunds > harvestProfitMax) {
-    //         return true;
-    //     }
+    // use this to determine when to invest automagically
+    function investTrigger(uint256 callCostinEth)
+        public
+        view
+        override
+        returns (bool)
+    {
+        // invest if we have available funds to deploy at our upper limit without considering gas price
+        uint256 deployableFunds = deployableFundsInUsdt();
+        if (deployableFunds > investProfitMax) {
+            return true;
+        }
 
-    //     // check if the base fee gas price is higher than we allow. if it is, block investing
-    //     if (!isBaseFeeAcceptable()) {
-    //         return false;
-    //     }
+        // check if the base fee gas price is higher than we allow. if it is, block investing
+        if (!isBaseFeeAcceptable()) {
+            return false;
+        }
 
-    //     // trigger if we want to manually invest, but only if our gas price is acceptable
-    //     if (forceInvestTriggerOnce) {
-    //         return true;
-    //     }
+        // trigger if we want to manually invest, but only if our gas price is acceptable
+        if (forceInvestTriggerOnce) {
+            return true;
+        }
 
-    //     // invest if we have a sufficient amount of deployable funds, but only if our gas price is acceptable
-    //     if (deployableFunds > investFundsMin) {
-    //         return true;
-    //     }
+        // invest if we have a sufficient amount of deployable funds, but only if our gas price is acceptable
+        if (deployableFunds > investFundsMin) {
+            return true;
+        }
 
-    //     // otherwise, we don't invest
-    //     return false;
-    // }
+        // otherwise, we don't invest
+        return false;
+    }
 
     // only checks bal rewards. 
     //Returns the expected value of the rewards in USDT, 1e6
@@ -450,16 +467,17 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return balPrice.mul(_claimableBal).div(1e20);
     }
 
-    // //Returns the value of deployable funds in USDT, 1e6
-    // function deployableFundsInUsdt() public view returns (uint256) {
-    //     uint256 _deployableFunds = deployableFunds();
+    //Returns the value of deployable funds in USDT, 1e6
+    // NEED TO WRITE A CALCULATION TO WORK THIS OUT!!!
+    function deployableFundsInUsdt() public view returns (uint256) {
+        uint256 _deployableFunds = deployableFunds();
 
-    //     uint256 balPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
-    //                             .latestAnswer();
+        uint256 balPrice = IOracle(0xdF2917806E30300537aEB49A7663062F4d1F2b5F)
+                                .latestAnswer();
 
-    //     //Get the latest oracle price for bal * amount of bal / (1e18 + 1e2) to adjust oracle price that is 1e8
-    //     return balPrice.mul(_claimableBal).div(1e20);
-    // }
+        //Get the latest oracle price for bal * amount of bal / (1e18 + 1e2) to adjust oracle price that is 1e8
+        return balPrice.mul(_claimableBal).div(1e20);
+    }
 
     // convert our keeper's eth cost into want, we don't need this anymore since we don't use baseStrategy harvestTrigger
     function ethToWant(uint256 _ethAmount)
@@ -657,6 +675,15 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     ) external onlyAuthorized {
         harvestProfitMin = _harvestProfitMin;
         harvestProfitMax = _harvestProfitMax;
+    }
+
+    // This determines when we tell our keepers to start allowing harvests based on profit, and when to sell no matter what. this is how much in USDT we need to make. remember, 6 decimals!
+    function setInvestProfitNeeded(
+        uint256 _investProfitMin,
+        uint256 _investProfitMax
+    ) external onlyAuthorized {
+        investProfitMin = _investProfitMin;
+        investProfitMax = _investProfitMax;
     }
 
     function updateTradeFactory(address _newTradeFactory)
