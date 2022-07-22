@@ -297,8 +297,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         )
     {
         // this claims our CRV, CVX, and any extra tokens like SNX or ANKR. no harm leaving this true even if no extra rewards currently.
-        rewardsContract.getReward(address(this), true);
-
+        _claimRewards();
+        
         if (localKeepCRV > 0 && curveVoter != address(0)) {
             uint256 crvBalance = crv.balanceOf(address(this));
             uint256 _sendToVoter =
@@ -568,6 +568,10 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
             rewardsContract.withdraw(_stakedBal, claimRewards);
         }
     }
+
+    function _claimRewards() public {
+        rewardsContract.getReward(address(this), true);
+    } 
 
     // we don't want for these tokens to be swept out. We allow gov to sweep out cvx vault tokens; we would only be holding these if things were really, really rekt.
     function protectedTokens()
