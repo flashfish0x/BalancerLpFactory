@@ -22,6 +22,7 @@ interface IOracle {
 
 interface IFeedRegistry {
     function getFeed(address, address) external view returns (address);
+
     function latestRoundData(address, address) external view returns (
         uint80 roundId,
         int256 answer,
@@ -74,6 +75,7 @@ interface IConvexRewards {
 interface IDetails {
     // get details from curve
     function name() external view returns (string memory);
+
     function symbol() external view returns (string memory);
 }
 
@@ -89,6 +91,7 @@ interface IConvexDeposit {
     function withdraw(uint256 _pid, uint256 _amount) external returns (bool);
 
     function poolLength() external view returns (uint256);
+
     function crv() external view returns (address);
 
     // give us info about a pool based on its pid
@@ -113,7 +116,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
 
     // convex stuff
     address public depositContract;
-         // this is the deposit contract that all pools use, aka booster
+    // this is the deposit contract that all pools use, aka booster
     IConvexRewards public rewardsContract; // This is unique to each curve pool
 
     uint256 public pid; // this is unique to each pool
@@ -124,8 +127,8 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
     address public convexVoter; // Yearn's veCVX voter, we send some extra CVX here
     uint256 internal constant FEE_DENOMINATOR = 10000; // this means all of our fee values are in basis points
 
-    IERC20 public  crv;
-    IERC20 public  convexToken;
+    IERC20 public crv;
+    IERC20 public convexToken;
 
     /* ========== STATE VARIABLES ========== */
     // these will likely change across different wants.
@@ -164,7 +167,13 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _booster,
         address _convexToken
     ) public BaseStrategy(_vault) {
-        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _booster, _convexToken);
+        _initializeStrat(
+            _pid,
+            _tradeFactory,
+            _harvestProfitMax,
+            _booster,
+            _convexToken
+        );
     }
 
     /* ========== CLONING ========== */
@@ -232,7 +241,13 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         address _convexToken
     ) public {
         _initialize(_vault, _strategist, _rewards, _keeper);
-        _initializeStrat(_pid, _tradeFactory, _harvestProfitMin, _harvestProfitMax, _booster, _convexToken);
+        _initializeStrat(
+            _pid,
+            _tradeFactory,
+            _harvestProfitMax,
+            _booster,
+            _convexToken
+        );
     }
 
     // this is called by our original strategy, as well as any clones
@@ -248,7 +263,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         require(address(tradeFactory) == address(0)); // already initialized.
         depositContract = _booster;
         convexToken = IERC20(_convexToken);
-        
+
         // want = Curve LP
         want.approve(address(depositContract), type(uint256).max);
 
@@ -265,13 +280,17 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         require(address(lptoken) == address(want));
 
         tradeFactory = _tradeFactory;
+
         _updateRewards();
         _setUpTradeFactory();
+
         // set our strategy's name
         stratName = string(
             abi.encodePacked(
                 IDetails(address(want)).name(),
-                " Auto-Compounding ",  IDetails(address(convexToken)).symbol(), " Strategy"
+                " Auto-Compounding ",
+                IDetails(address(convexToken)).symbol(),
+                " Strategy"
             )
         );
     }
@@ -422,7 +441,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         return false;
     }
 
-    // only checks bal rewards. 
+    // only checks crv rewards. do we need to also check convexToken?
     //Returns the expected value of the rewards in USDT, 1e6
     function claimableProfitInUsdt() public view returns (uint256) {
         (, int256 crvPrice,,,) = IFeedRegistry(0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf).latestRoundData(
@@ -491,7 +510,10 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         }
     }
 
-    function updateLocalKeepCrvs(uint256 _keepCrv,uint256 _keepCvx) external onlyGovernance {
+    function updateLocalKeepCrvs(uint256 _keepCrv, uint256 _keepCvx)
+        external
+        onlyGovernance
+    {
         require(_keepCrv <= 10_000);
 
         localKeepCRV = _keepCrv;

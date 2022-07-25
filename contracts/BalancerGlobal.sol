@@ -92,11 +92,11 @@ interface IStrategy {
         uint256 _harvestProfitMax,
         address _booster,
         address _convexToken
-
     ) external returns (address newStrategy);
 
     function updateVoters(address _curveVoter, address _convexVoter) external;
-    function updateLocalKeepCrvs(uint256 _keepCrv,uint256 _keepCvx) external;
+
+    function updateLocalKeepCrvs(uint256 _keepCrv, uint256 _keepCvx) external;
 
     function setHealthCheck(address) external;
 }
@@ -156,7 +156,7 @@ interface Vault {
 
 contract BalancerGlobal {
     event NewAutomatedVault(
-        uint256 indexed category,  
+        uint256 indexed category,
         address indexed lpToken,
         address indexed vault,
         address gauge,
@@ -181,6 +181,7 @@ contract BalancerGlobal {
 
     address public constant aura = 0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF;
     uint256 public constant category = 1; // 1 for balancer
+
     // always owned by ychad
     address public owner;
     address internal pendingOwner = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
@@ -290,7 +291,7 @@ contract BalancerGlobal {
     function setKeepCRV(uint256 _keepCRV, address _voterCRV) external {
         require(msg.sender == owner);
         require(_keepCRV <= 10_000);
-        if(_keepCRV > 0){
+        if (_keepCRV > 0) {
             require(_voterCRV != address(0));
         }
         keepCRV = _keepCRV;
@@ -304,10 +305,10 @@ contract BalancerGlobal {
     function setKeepCVX(uint256 _keepCVX, address _voterCVX) external {
         require(msg.sender == owner);
         require(_keepCVX <= 10_000);
-        if(_keepCVX > 0){
+        if (_keepCVX > 0) {
             require(_voterCVX != address(0));
         }
-        
+
         keepCVX = _keepCVX;
         voterCVX = _voterCVX;
     }
@@ -352,7 +353,11 @@ contract BalancerGlobal {
     //
     ////////////////////////////////////
 
-    constructor(address _registry, address _auraStratImplementation, address _owner) public {
+    constructor(
+        address _registry,
+        address _auraStratImplementation,
+        address _owner
+    ) public {
         registry = Registry(_registry);
         auraStratImplementation = _auraStratImplementation;
         owner = _owner;
@@ -442,6 +447,7 @@ contract BalancerGlobal {
                 "Unable to add pool to Aura"
             );
         }
+
         //now we create the vault, endorses it as well
         vault = registry.newVault(
             lptoken,
@@ -475,22 +481,23 @@ contract BalancerGlobal {
         if (v.performanceFee() != performanceFee) {
             v.setPerformanceFee(performanceFee);
         }
+
         //now we create the convex strat
-        strategy = IStrategy(auraStratImplementation)
-            .cloneStrategyConvex(
-                vault,
-                management,
-                treasury,
-                keeper,
-                pid,
-                tradeFactory,
-                harvestProfitMinInUsdt,
-                harvestProfitMaxInUsdt,
-                address(booster),
-                aura
+        strategy = IStrategy(auraStratImplementation).cloneStrategyConvex(
+            vault,
+            management,
+            treasury,
+            keeper,
+            pid,
+            tradeFactory,
+            harvestProfitMinInUsdt,
+            harvestProfitMaxInUsdt,
+            address(booster),
+            aura
         );
         IStrategy(strategy).setHealthCheck(healthCheck);
-        if(keepCRV > 0 || keepCVX > 0){
+
+        if (keepCRV > 0 || keepCVX > 0) {
             IStrategy(strategy).updateVoters(voterCRV, voterCVX);
             IStrategy(strategy).updateLocalKeepCrvs(keepCRV, keepCVX);
         }
