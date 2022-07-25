@@ -36,7 +36,7 @@ def test_migration(
     new_strategy = strategist.deploy(
         StrategyConvexFactoryClonable,
         vault,
-        new_trade_factory, pid, 25_000*1e6, booster, auraToken
+        new_trade_factory, pid, 10_000*1e6, 25_000*1e6, booster, auraToken
     )
     total_old = strategy.estimatedTotalAssets()
 

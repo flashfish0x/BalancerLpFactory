@@ -77,7 +77,7 @@ def test_keeps(
     vault,
     BalancerGlobal,
     whale,
-    other_gauge,
+    another_gauge,
     strategy,
     StrategyConvexFactoryClonable,
     chain,
@@ -95,7 +95,7 @@ def test_keeps(
     balancer_global.setKeepCVX(new_keep_cvx, voter_cvx, {"from": gov})
 
     t1 = balancer_global.createNewVaultsAndStrategies(
-        other_gauge, {"from": gov}
+        another_gauge, {"from": gov}
     )
 
     new_strategy = StrategyConvexFactoryClonable.at(t1.events['NewAutomatedVault']['strategy'])

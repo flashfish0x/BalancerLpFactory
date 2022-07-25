@@ -304,6 +304,9 @@ def badgerweth_gauge(Contract):
 @pytest.fixture(scope="module")
 def other_gauge(Contract):
     yield Contract("0xcD4722B7c24C29e0413BDCd9e51404B4539D14aE")
+@pytest.fixture(scope="module")
+def another_gauge(Contract):
+    yield Contract("0x79eF6103A513951a3b25743DB509E267685726B7")
 
     
 
@@ -379,7 +382,7 @@ def strategy(
 
     # print(next_contract)
 
-    s = strategist.deploy(StrategyConvexFactoryClonable, v2, new_trade_factory, pid, 25_000*1e6, booster, auraToken)
+    s = strategist.deploy(StrategyConvexFactoryClonable, v2, new_trade_factory, pid, 10_000*1e6, 25_000*1e6, booster, auraToken)
     balancer_global.setAuraStratImplementation(s, {"from": gov})
     print("convex impl: ", s)
     
