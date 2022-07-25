@@ -170,6 +170,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         _initializeStrat(
             _pid,
             _tradeFactory,
+            _harvestProfitMin,
             _harvestProfitMax,
             _booster,
             _convexToken
@@ -244,6 +245,7 @@ contract StrategyConvexFactoryClonable is BaseStrategy {
         _initializeStrat(
             _pid,
             _tradeFactory,
+            _harvestProfitMin,
             _harvestProfitMax,
             _booster,
             _convexToken
