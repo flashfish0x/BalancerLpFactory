@@ -90,6 +90,8 @@ interface IStrategy {
         address _tradeFactory,
         uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,
+        uint256 _investCreditMin,
+        uint256 _investCreditMax,
         address _booster,
         address _convexToken
 
@@ -328,6 +330,24 @@ contract BalancerGlobal {
         harvestProfitMaxInUsdt = _harvestProfitMaxInUsdt;
     }
 
+    uint256 public investCreditMin = 1_000_000 * 1e18; // what credit (in want) do we need to invest
+
+    function setInvestCreditMin(uint256 _investCredititMin)
+        external
+    {
+        require(msg.sender == owner || msg.sender == management);
+        investCreditMin = _investCreditMin;
+    }
+
+    uint256 public investCreditMax = 1_000_000 * 1e18; // what credit (in want) do we need to invest
+
+    function setInvestCreditMax(uint256 _investCreditMax)
+        external
+    {
+        require(msg.sender == owner || msg.sender == management);
+        investCreditMax = _investCreditMax;
+    }
+
     uint256 public performanceFee = 1_000;
 
     function setPerformanceFee(uint256 _performanceFee) external {
@@ -490,6 +510,8 @@ contract BalancerGlobal {
             tradeFactory,
             harvestProfitMinInUsdt,
             harvestProfitMaxInUsdt,
+            investCreditMin,
+            investCreditMax,
             address(booster),
             aura
         );
