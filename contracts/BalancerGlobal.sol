@@ -158,8 +158,8 @@ contract BalancerGlobal {
     event NewAutomatedVault(
         uint256 indexed category,
         address indexed lpToken,
-        address indexed vault,
         address gauge,
+        address indexed vault,
         address strategy
     );
 
